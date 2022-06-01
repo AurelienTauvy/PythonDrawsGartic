@@ -1,6 +1,6 @@
 #Gartic Screen size : ~1900 * 1000
 #Small pencil click size : ~4*4 pixels
-#So we'll resize to at best 475*250
+#So we'll resize to at best 500*250
 #
 #Steps :
 #1. Get image we want to draw (to the right scale)
@@ -22,27 +22,34 @@
 
 #Notes :
 # https://www.thepythoncode.com/article/control-mouse-python
-#   Upper-left corner coordinates : 801,405
-#   Lower-right coordinates : 2070,1109
-#   Middle of Black color : 595,530
-#   Middle of dark grey : 655,530
-#   Middle of white color : 595,600
+#   Upper-left corner coordinates : 1200,600
+#   Lower-right coordinates : 3120,1670
+#   Middle of Black color : 900,800
+#   Middle of dark grey : 985,800
+#   Middle of white color : 900,900
 #
 #   Conclusions :
-#       Canvas size : 1200*700
-#       left color offset : 60px
-#       Down color offset : 70px
+#       Canvas size : 2000*1050
+#       left color offset : 85px
+#       Down color offset : 100px
 #
+#
+#
+#   Since with the lowest pencil size there is still too much pixels/drawing is too slow, we'll divide again, using the 2nd size of pencil (circle of 16px of radius)
 
 import mouse
 import cv2
+import pyautogui
+import time
 
-def getIndexFromClosestColor(pixel):
+pyautogui.PAUSE = 0
+
+def getIndexFromClosestColor(p_pixel):
     currentIndex = 0;
     closestIndex = -1;
     closestDistance = 256*3;
     for val in garticColors:
-        distance = abs(pixel[0]-val[0])+abs(pixel[1]-val[1])+abs(pixel[2]-val[2]);
+        distance = abs(p_pixel[0]-val[0])+abs(p_pixel[1]-val[1])+abs(p_pixel[2]-val[2]);
         if (distance < closestDistance):
             closestDistance = distance;
             closestIndex = currentIndex;
@@ -51,13 +58,25 @@ def getIndexFromClosestColor(pixel):
     return closestIndex;
 
 
+#Mouve mose to firstColorX+(z%3)*decalageXentre2Couleurs ; firstColorY+ (z/3)*decalageYentre2Couleurs
+def moveToColorIndex(p_index):
+    l_indexX = p_index%3
+    l_indexY = int(p_index/3)
+    pyautogui.moveTo(900 + (85 * l_indexX) ,800 + (100 * l_indexY))
+
+    return True
+
+
 #Getting the image, resizing it so it can be appropriately used for gartic
-img = cv2.imread('./semiramis_wp.jpg', cv2.IMREAD_COLOR);
+img = cv2.imread('./Utility_Debug.png');
 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-rescaledSize = (475,250);
+rescaledSize = (125,63);
 resized = cv2.resize(img, rescaledSize, interpolation = cv2.INTER_AREA);
 
-#cv2.imshow('Resized',resized);
+cv2.imshow('Resized',resized);
+cv2.waitKey(1);
+
+
 
 garticColors = {
     (0,0,0),                  #Black              0
@@ -86,29 +105,44 @@ for i in range (0,len(garticColors)):
     list_of_coordinates.append([]);
 
 #print(len(garticColors));
+print("Went past")
 
-for i in range (0,250):
-    for j in range (0,1):
-        pixelMapIndex = getIndexFromClosestColor(img[j,i]);
+for i in range (0,62):
+    for j in range (0,124):
+        pixelMapIndex = getIndexFromClosestColor(resized[i,j]);
         #print(j,i)
-        list_of_coordinates[pixelMapIndex].append((j,i))
+        list_of_coordinates[pixelMapIndex].append((i,j))
         #print(j,i)
         #print(pixelMapIndex);
         #print(img[j,i][0]);
 
+pyautogui.moveTo(1200,650)
+pyautogui.click()
+
+print("Mapped")
 
 for z in range (0,len(garticColors)):
     print("######################")
     print(z)
     print("######################")
+
+
     #Move mouse to correct color on screen
-    #Mouve mose to firstColorX+(z%3)*decalageXentre2Couleurs ; firstColorY+ (z/3)*decalageYentre2Couleurs
-    #click, wait a little, release
-    #wait a little bit of time
+    moveToColorIndex(z)
+    pyautogui.click()
+
+    #Waiting a bit after each color change just to be sure not to drag the color on the whole screen
+    time.sleep(0.1)
     for val in list_of_coordinates[z]:
-        print(val[1]);
+        xToPrint = 1200 + (val[0] * 16)
+        yToPrint = 600 + (val[1] * 16)
+        #print(str(xToPrint)+";"+str(yToPrint))
+        if (xToPrint >= 1200 and xToPrint <= 3120 and yToPrint >= 600 and yToPrint <= 1650):
+            pyautogui.moveTo(xToPrint ,yToPrint)
+            pyautogui.click()
+            time.sleep(0.00002)
+        #print(str(val[1])+";"+str(val[0]));
         #move mouse to *basePositionX*+val[0]*4 ; *basePositionY*+val[1]*4
         #click, wait a little, release
 
-cv2.waitKey(0);
 cv2.destroyAllWindows();
